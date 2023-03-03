@@ -1,16 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Net.NetworkInformation;
-using SharpPcap;
+using SharpPcap; 
 using System.IO;
-using System.Windows.Forms;
-using System.Drawing;
-using System.Collections;
-using System.Threading;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using System.Net;
 
 namespace LTEParser
 {
@@ -20,15 +11,15 @@ namespace LTEParser
         static public Queue<string> Recs = new Queue<string>();
          
       
-        void EtherPacket_OnPacketArrival(object sender, CaptureEventArgs e)
+        void EtherPacket_OnPacketArrival(object sender, PacketCapture e)
         {
             try
             {
-                MemoryStream ms = new MemoryStream(e.Packet.Data);
+                MemoryStream ms = new MemoryStream(e.Data.ToArray());
                 ms.Seek(42, SeekOrigin.Begin);
                 if (ms.ReadByte() == 72)
                 {
-                    GTPv2 gtp = new GTPv2(ms, e.Packet.Data.Length);
+                    GTPv2 gtp = new GTPv2(ms, e.Data.Length);
                     Packets.Enqueue(gtp);
                 }
                 else
@@ -60,12 +51,12 @@ namespace LTEParser
                     {
                         SharpPcap.ICaptureDevice devcap = devlist[i];
 
-                        devcap.Open(DeviceMode.Promiscuous);
+                        devcap.Open(DeviceModes.Promiscuous);
                         {
                             if (devcap.MacAddress.ToString().ToUpper() == "005056816ED1")
                             {
                                 Devices.Add(devcap);
-                                
+
                                 devcap.OnPacketArrival += EtherPacket_OnPacketArrival;
                                 devcap.Filter = "udp";
                                 devcap.StartCapture();
@@ -81,6 +72,8 @@ namespace LTEParser
                 }
             }
         }
+
+
         public void Stop()
         {
             foreach(ICaptureDevice dev in Devices)
